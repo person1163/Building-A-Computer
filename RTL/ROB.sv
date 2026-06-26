@@ -4,14 +4,17 @@ import core_types_pkg::*;
 module ROB
 (
     input logic clk, rst,
+    
     // Valid entry to allocate
     input rob_entry_t alloc_entry,
     input logic alloc_valid,
     output logic alloc_ready,
     output logic [ROB_W-1:0] alloc_tag,
+    
     // Ready tag to be writen back
     input logic [ROB_W-1:0] wb_tag,
     input logic wb_valid,
+    
     // Retire logic
     output logic retire_valid,
     output rob_entry_t retired_entry,
@@ -37,12 +40,12 @@ always_comb begin
     next_head = head_ptr;
     next_count = count;
 
-    //allocation logic
+    // Allocation logic
     if(alloc_valid && !full) begin 
         next_tail = (tail_ptr + 1) % ROB_ENTRIES;
         next_count = next_count + 1;
     end
-    //deallocation logic
+    // Deallocation logic
     if(!empty && ROB_array[head_ptr].ready && ROB_array[head_ptr].valid) begin
         next_head = (head_ptr + 1) % ROB_ENTRIES;
         next_count = next_count - 1;

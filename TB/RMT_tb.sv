@@ -39,7 +39,7 @@ module RMT_tb;
 
   initial begin
     $dumpfile("rmt.vcd");
-    $dumpvars(0, rmt_tb);
+    $dumpvars(0, RMT_tb);
   end
 
   initial begin
@@ -52,27 +52,43 @@ module RMT_tb;
     rename_valid = 0;
     dst_valid = 0;
     commit_valid = 0;
+    src1 = 0;
+    src2 = 0;
+    dst = 0;
+    new_tag = 0;
+    commit_dst = 0;
+    commit_tag = 0;
 
     repeat (3) @(posedge clk);
     rst = 0;
 
-    // example stimulus
-    @(posedge clk);
-    rename_valid = 1;
-    dst_valid = 1;
+    // rename destination register 5 to tag 3
+    src1 = 5;
+    src2 = 6;
     dst = 5;
     new_tag = 3;
+    rename_valid = 1;
+    dst_valid = 1;
     @(posedge clk);
+
     rename_valid = 0;
     dst_valid = 0;
-
     @(posedge clk);
+
+    // check that the mapping became visible
+    if (!src1_valid) $fatal("RMT mapping should be valid after rename");
+    if (src1_tag !== 3) $fatal("Wrong tag assigned after rename");
+
+    // commit the same mapping
     commit_valid = 1;
     commit_dst = 5;
     commit_tag = 3;
     @(posedge clk);
-    commit_valid = 0;
 
-    #20 $finish;
+    commit_valid = 0;
+    @(posedge clk);
+
+    // check that mapping is cleared
+    if (src1_valid) $fatal("RMT mapping should be cleared after commit");
   end
 endmodule
