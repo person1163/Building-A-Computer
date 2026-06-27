@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+`timescale 1ns/1ns
 
 module RMT_tb;
   import core_params_pkg::*;
@@ -90,5 +90,6 @@ module RMT_tb;
 
     // check that mapping is cleared
     if (src1_valid) $fatal("RMT mapping should be cleared after commit");
+    #20 $finish;
   end
 endmodule

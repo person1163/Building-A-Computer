@@ -1,3 +1,5 @@
+`timescale 1ns/1ns
+
 package core_params_pkg;
     parameter int ARCH_REGS     = 32;
     parameter int XLEN          = 32;

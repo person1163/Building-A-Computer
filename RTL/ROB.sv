@@ -1,3 +1,5 @@
+`timescale 1ns/1ns
+
 import core_params_pkg::*;
 import core_types_pkg::*;
 
@@ -18,16 +20,20 @@ module ROB
     // Retire logic
     output logic retire_valid,
     output rob_entry_t retired_entry,
-    output logic [ROB_W:0] count;
+    output logic [ROB_W:0] count
 );
 
 logic [ROB_W-1:0] head_ptr, tail_ptr, next_head, next_tail;
 logic [ROB_W:0] next_count;
-logic bit full, empty;
+logic full, empty;
+
+localparam logic [ROB_W:0] ROB_ENTRIES_COUNT = (ROB_W+1)'(ROB_ENTRIES);
+localparam logic [ROB_W-1:0] LAST_PTR = ROB_W'(ROB_ENTRIES - 1);
+localparam logic [ROB_W-1:0] PTR_INC = 'd1;
 
 rob_entry_t ROB_array[ROB_ENTRIES-1:0];
 
-assign full = (count == ROB_ENTRIES);
+assign full = (count == ROB_ENTRIES_COUNT);
 assign empty = (count == 0);
 
 
@@ -42,12 +48,20 @@ always_comb begin
 
     // Allocation logic
     if(alloc_valid && !full) begin 
-        next_tail = (tail_ptr + 1) % ROB_ENTRIES;
+        if (tail_ptr == LAST_PTR) begin
+            next_tail = '0;
+        end else begin
+            next_tail = tail_ptr + PTR_INC;
+        end
         next_count = next_count + 1;
     end
     // Deallocation logic
     if(!empty && ROB_array[head_ptr].ready && ROB_array[head_ptr].valid) begin
-        next_head = (head_ptr + 1) % ROB_ENTRIES;
+        if (head_ptr == LAST_PTR) begin
+            next_head = '0;
+        end else begin
+            next_head = head_ptr + PTR_INC;
+        end
         next_count = next_count - 1;
     end
 end

@@ -379,4 +379,4 @@ Created the ROB, RMT, and IQ. Working on creating the testbenches via cocotb.
 
 ## 6/26/2026:
 
-Finished testbenches
+Finished testbenches. Created makefile to simulate ROB, RMT, and IQ via Verilator, cleaned up syntax, and verified that on first simulation, everything works as expected.

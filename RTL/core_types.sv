@@ -1,3 +1,5 @@
+`timescale 1ns/1ns
+
 package core_types_pkg;
 
   import core_params_pkg::*;
