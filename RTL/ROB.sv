@@ -20,6 +20,7 @@ module ROB
     // Retire logic
     output logic retire_valid,
     output rob_entry_t retired_entry,
+    output logic [ROB_W-1:0] retired_tag,
     output logic [ROB_W:0] count
 );
 
@@ -45,7 +46,8 @@ always_comb begin
     next_tail = tail_ptr;
     next_head = head_ptr;
     next_count = count;
-
+    retired_tag = head_ptr;
+    
     // Allocation logic
     if(alloc_valid && !full) begin 
         if (tail_ptr == LAST_PTR) begin
