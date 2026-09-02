@@ -6,7 +6,12 @@ module datapath(
     input logic [31:0] instruction,
     input logic instruction_valid,
     input logic [31:0] pc, seq,
-    output logic instruction_ready
+    output logic instruction_ready,
+    output logic commit_valid,
+    output logic [31:0] commit_pc,
+    output logic [31:0] commit_seq,
+    output logic [ARCH_W-1:0] commit_dst_arch,
+    output logic commit_dst_valid
 );
 
 uop_t instruction_uop;
@@ -168,7 +173,11 @@ always_comb begin
 
     iq_dispatch_valid = instruction_valid && instruction_ready;
 
-    
+    commit_valid = rob_retire_valid && rob_retired_entry.valid;
+    commit_pc    = rob_retired_entry.pc;
+    commit_seq   = rob_retired_entry.seq;
+    commit_dst_arch = rob_retired_entry.dst_arch;
+    commit_dst_valid = rob_retired_entry.dst_valid;
 
 end
 
@@ -184,7 +193,7 @@ always_ff @(posedge clk) begin
     exec_uop_q <= iq_issue_uop;
     
     // Generate writeback from execute stage (one-cycle execute for now)
-    wb_valid <= exec_valid_q && exec_uop_q.dst_valid;
+    wb_valid <= exec_valid_q; //Writeback is valid regardless of destination(branches)
     wb_tag <= exec_uop_q.dst_tag;
   end
 end

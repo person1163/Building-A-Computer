@@ -1,0 +1,75 @@
+[*]
+[dumpfile] "build/datapath_tb/datapath.fst"
+[dumpfile_mtime] ""
+[timestart] 0
+[size] 1800 1000
+[pos] -1 -1
+*-15.000000 255.000000
+[treeopen] datapath_tb.
+[treeopen] datapath_tb.dut.
+@28
+-Input
+@22
+ datapath_tb.clk
+@28
+ datapath_tb.rst
+@28
+ datapath_tb.instruction_valid
+@28
+ datapath_tb.instruction_ready
+@22
+ datapath_tb.instruction[31:0]
+@22
+ datapath_tb.pc[31:0]
+@22
+ datapath_tb.seq[31:0]
+@28
+-ROB
+@28
+ datapath_tb.dut.rob_alloc_valid
+@28
+ datapath_tb.dut.rob_alloc_ready
+@22
+ datapath_tb.dut.rob_alloc_tag[2:0]
+@22
+ datapath_tb.dut.rob_count[3:0]
+@28
+ datapath_tb.dut.rob_retire_valid
+@22
+ datapath_tb.dut.rob_retired_tag[2:0]
+@28
+-IQ
+@28
+ datapath_tb.dut.iq_dispatch_valid
+@28
+ datapath_tb.dut.iq_dispatch_ready
+@28
+ datapath_tb.dut.iq_issue_valid
+@22
+ datapath_tb.dut.iq_dispatch_uop[98:0]
+@22
+ datapath_tb.dut.iq_issue_uop[98:0]
+@28
+-Execute / Writeback
+@28
+ datapath_tb.dut.exec_valid_q
+@22
+ datapath_tb.dut.exec_uop_q[98:0]
+@28
+ datapath_tb.dut.wb_valid
+@22
+ datapath_tb.dut.wb_tag[2:0]
+@28
+-Commit
+@28
+ datapath_tb.commit_valid
+@22
+ datapath_tb.commit_seq[31:0]
+@22
+ datapath_tb.commit_pc[31:0]
+@22
+ datapath_tb.commit_dst_arch[4:0]
+@28
+ datapath_tb.commit_dst_valid
+[pattern_trace] 1
+[pattern_trace] 0
