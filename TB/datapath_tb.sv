@@ -133,6 +133,22 @@ module datapath_tb ();
         instruction = {7'b0000000, 5'd4, 5'd6, 3'b000, 5'd7, 7'b0110011}; //add x7, x6, x4
 
         while (!instruction_ready) @(posedge clk);
+
+        // tenth instruction no destination regs
+        @(negedge clk);
+        instruction_valid = 1;
+        pc = 32'h24;
+        seq = 9;
+        instruction = {
+            7'b0000000,  // imm[11:5]
+            5'd6,        // rs2
+            5'd5,        // rs1
+            3'b010,      // funct3 for SW
+            5'b00000,    // imm[4:0]
+            7'b0100011   // store opcode
+        };
+
+        while (!instruction_ready) @(posedge clk);
         @(posedge clk);
 
         @(negedge clk);
@@ -140,7 +156,7 @@ module datapath_tb ();
         instruction_valid = 0;
         repeat (20) @(posedge clk);
 
-        if (commit_count != 9) begin
+        if (commit_count != 10) begin
             $fatal("Expected 9 commits, saw %0d", commit_count);
         end
         $finish;
@@ -213,6 +229,15 @@ module datapath_tb ();
                     assert (commit_pc == 32'h20) else $fatal("Commit 8: expected PC 0x20, got 0x%h", commit_pc);
                     assert (commit_dst_valid) else $fatal("Commit 8: expected a destination register");
                     assert (commit_dst_arch == 7) else $fatal("Commit 8: expected destination x7, got x%0d", commit_dst_arch);
+                end
+
+                9: begin
+                    assert (commit_seq == 9)
+                        else $fatal("Commit 9: expected seq 9, got %0d", commit_seq);
+                    assert (commit_pc == 32'h24)
+                        else $fatal("Commit 9: expected PC 0x24, got 0x%h", commit_pc);
+                    assert (!commit_dst_valid)
+                        else $fatal("Commit 9: store should not have a destination register");
                 end
 
                 default: $fatal("Unexpected extra commit: seq=%0d pc=0x%h", commit_seq, commit_pc);
