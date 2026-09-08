@@ -1,25 +1,25 @@
 module ALU(
   input [31:0] a,
   input [31:0] b,
-  input [3:0] alu_opcodes,
+  input alu_op_t alu_opcode,
   output reg [31:0] result
 );
 
-always @(*)
-begin
-  case (alu_opcodes)
-    4'b0000: result = a + b;
-    4'b0001: result = a - b;
-    4'b0010: result = a << b;
-    4'b0100: result = a < b;
-    4'b0110: result = a < $unsigned(b);
-    4'b1000: result = a ^ b;
-    4'b1010: result = a >> b;
-    4'b1011: result = a >>> b;
-    4'b1100: result = a | b;
-    4'b1110: result = a & b;
-    default: result = 16'b0; // Handle undefined cases
+always_comb
+  begin
+    case (alu_opcode)
+      ALU_ADD:  result = a + b;
+      ALU_SUB:  result = a - b;
+      ALU_SLL:  result = a << b;
+      ALU_SLT:  result = $signed(a) < $signed(b);
+      ALU_SLTU: result = $unsigned(a) < $unsigned(b);
+      ALU_XOR:  result = a ^ b;
+      ALU_SRL:  result = a >> b;
+      ALU_SRA:  result = $signed(a) >>> b;
+      ALU_OR:   result = a | b;
+      ALU_AND:  result = a & b;
+      default:  result = '0;
     endcase
-end
+  end
 
 endmodule

@@ -12,6 +12,19 @@ package core_types_pkg;
     OP_NOP    = 3'd7
   } op_t;
 
+  typedef enum logic [3:0] {
+    ALU_ADD  = 4'b0000,
+    ALU_SUB  = 4'b0001,
+    ALU_SLL  = 4'b0010,
+    ALU_SLT  = 4'b0100,
+    ALU_SLTU = 4'b0110,
+    ALU_XOR  = 4'b1000,
+    ALU_SRL  = 4'b1010,
+    ALU_SRA  = 4'b1011,
+    ALU_OR   = 4'b1100,
+    ALU_AND  = 4'b1110
+  } alu_op_t;
+
   typedef struct packed {
     logic             valid;
     logic [31:0]      seq;
@@ -30,6 +43,7 @@ package core_types_pkg;
     logic             src2_tag_valid;
     logic             src1_ready;
     logic             src2_ready;
+    alu_op_t          alu_opcode,
   } uop_t;
 
   typedef struct packed {
