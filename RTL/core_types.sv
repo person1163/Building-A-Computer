@@ -43,8 +43,31 @@ package core_types_pkg;
     logic             src2_tag_valid;
     logic             src1_ready;
     logic             src2_ready;
-    alu_op_t          alu_opcode,
+    alu_op_t          alu_opcode;
   } uop_t;
+
+  typedef struct packed {
+    logic valid;
+    logic [31:0] seq;
+    logic [XLEN-1:0] pc;
+    op_t op;
+    alu_op_t alu_opcode;
+    logic [ARCH_W-1:0] dst;
+    logic [ROB_W-1:0] dst_tag;
+    logic [ROB_W-1:0] src1_tag;
+    logic [ROB_W-1:0] src2_tag;
+    logic src1_valid;
+    logic src2_valid;
+    logic dst_valid;
+    logic src1_ready;
+    logic src2_ready;
+    logic [XLEN-1:0] src1_value;
+    logic [XLEN-1:0] src2_value;
+    logic [XLEN-1:0] imm;
+    logic use_imm;
+  } issued_uop_t;
+
+  
 
   typedef struct packed {
     logic             valid;

@@ -14,11 +14,9 @@ module datapath(
     output logic commit_dst_valid
 );
 
-uop_t instruction_uop;
 
-logic [6:0] current_opcode;
-logic [2:0] current_funct3;
-logic [6:0] current_funct7;
+uop_t decoded_uop;
+logic decode_valid;
 
 // ROB
 rob_entry_t rob_alloc_entry;
@@ -41,15 +39,65 @@ uop_t       iq_dispatch_uop;
 logic       iq_issue_valid;
 uop_t       iq_issue_uop;
 
-logic exec_valid_q;
-uop_t exec_uop_q;
+// Execute
+issued_uop_t issued_uop;
+logic                  exec_valid;
+logic [XLEN-1:0]       exec_result;
+logic [ROB_W-1:0]      exec_tag;
+
+// Register File
+logic [XLEN-1:0] arch_src1_value;
+logic [XLEN-1:0] arch_src2_value;
+logic [XLEN-1:0] arch_write_value;
+logic [ARCH_W-1:0] arch_write_register;
+logic arch_write_enable;
+
+//Speculative Results
+logic [XLEN-1:0] speculative_result_file [ROB_ENTRIES];
+logic result_ready [ROB_ENTRIES];
 
 // Global writeback wakeup
 logic       wb_valid;
 logic [ROB_W-1:0] wb_tag;
 
 
-logic decode_valid;
+
+decode u_decode (
+    .instruction(instruction),
+    .pc(pc),
+    .seq(seq),
+    .instruction_valid(instruction_valid),
+    .decoded_uop(decoded_uop),
+    .decode_valid(decode_valid)
+);
+
+rename u_rename (
+    .decoded_uop(decoded_uop),
+    .rob_alloc_tag(rob_alloc_tag),
+    .rmt_src1_tag(rmt_src1_tag), .rmt_src2_tag(rmt_src2_tag),
+    .rmt_src1_valid(rmt_src1_valid), .rmt_src2_valid(rmt_src2_valid),
+    .instruction_valid(instruction_valid),
+    .instruction_ready(instruction_ready),
+    .iq_dispatch_uop(iq_dispatch_uop),
+    .rob_alloc_valid(rob_alloc_valid),
+    .rob_alloc_entry(rob_alloc_entry),
+    .rmt_rename_valid(rmt_rename_valid),
+    .iq_dispatch_valid(iq_dispatch_valid)
+);
+
+execute u_execute (
+    .clk         (clk),
+    .rst         (rst),
+    .issue_valid (iq_issue_valid),
+    .issued_uop  (issued_uop),
+
+    .exec_valid  (exec_valid),
+    .result      (exec_result),
+    .exec_tag    (exec_tag)
+);
+
+assign wb_valid = exec_valid;
+assign wb_tag   = exec_tag;
 
 ROB u_rob (
   .clk(clk), .rst(rst),
@@ -67,10 +115,10 @@ ROB u_rob (
 RMT u_rmt (
   .clk(clk), .rst(rst),
   .rename_valid(rmt_rename_valid),
-  .dst_valid(instruction_uop.dst_valid),
-  .src1(instruction_uop.src1),
-  .src2(instruction_uop.src2),
-  .dst(instruction_uop.dst),
+  .dst_valid(decoded_uop.dst_valid),
+  .src1(decoded_uop.src1),
+  .src2(decoded_uop.src2),
+  .dst(decoded_uop.dst),
   .new_tag(rob_alloc_tag),
   .commit_valid(rob_retire_valid && rob_retired_entry.dst_valid),
   .commit_dst(rob_retired_entry.dst_arch),
@@ -91,87 +139,30 @@ IQ u_iq (
   .issue_uop(iq_issue_uop)
 );
 
-ALU u_alu (
-  .a(32'b0),        // placeholder for now, no register file yet
-  .b(32'b0),        // placeholder for now
-  .alu_opcodes(4'b0),
-  .result()         // unused for now
-);
-
-
 always_comb begin
-    instruction_uop = '0;
-    // Fetch and Decode logic
-    current_opcode          = instruction[6:0];
-    instruction_uop.dst     = instruction[11:7];
-    current_funct3          = instruction[14:12];
-    instruction_uop.src1    = instruction[19:15];
-    instruction_uop.src2    = instruction[24:20];
-    current_funct7          = instruction[31:25];
-
-    instruction_uop.pc      = pc;
-    instruction_uop.seq     = seq;
-
-    case(current_opcode)
-        default: begin
-            decode_valid = 1'b0;
-        end
-        // R-type instructions
-        7'b0110011: begin
-            instruction_uop.src1_valid = 1'b1;
-            instruction_uop.src2_valid = 1'b1;
-            instruction_uop.dst_valid = 1'b1;
-            decode_valid = 1'b1;
-        end
-        // I-type instructions
-        7'b0010011: begin
-            instruction_uop.src1_valid = 1'b1;
-            instruction_uop.src2_valid = 1'b0;
-            instruction_uop.dst_valid = 1'b1;
-            decode_valid = 1'b1;
-        end
-        // S-type instructions
-        7'b0100011: begin
-            instruction_uop.src1_valid = 1'b1;
-            instruction_uop.src2_valid = 1'b1;
-            instruction_uop.dst_valid = 1'b0;
-            decode_valid = 1'b1;
-        end
-        // B-type instructions
-        7'b1100011: begin
-            instruction_uop.src1_valid = 1'b1;
-            instruction_uop.src2_valid = 1'b1;
-            instruction_uop.dst_valid = 1'b0;
-            decode_valid = 1'b1;
-        end
-    endcase
-
+    
     instruction_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
 
-    // Rename logic
-    rob_alloc_valid       = instruction_valid && instruction_ready;
-    rob_alloc_entry       = '0;
-    rob_alloc_entry.valid = 1'b1;
-    rob_alloc_entry.ready = 1'b0;
-    rob_alloc_entry.seq   = instruction_uop.seq;
-    rob_alloc_entry.pc    = instruction_uop.pc;
-    rob_alloc_entry.dst_arch = instruction_uop.dst;
-    rob_alloc_entry.dst_valid= instruction_uop.dst_valid;
 
-    // RMT update on successful rename
-    rmt_rename_valid = instruction_valid && instruction_ready && instruction_uop.dst_valid;
+    // Ready to execute uop
+    issued_uop = '0;
+    issued_uop.valid = iq_issue_valid;
+    issued_uop.seq = iq_issue_uop.seq;
+    issued_uop.pc = iq_issue_uop.pc;
+    issued_uop.op = iq_issue_uop.op;
+    issued_uop.alu_opcode = iq_issue_uop.alu_opcode;
+    issued_uop.dst = iq_issue_uop.dst;
+    issued_uop.dst_tag = iq_issue_uop.dst_tag;
 
-    // Build IQ uop with renamed tags
-    iq_dispatch_uop = instruction_uop;
-    iq_dispatch_uop.dst_tag = rob_alloc_tag;
-    iq_dispatch_uop.src1_tag_valid = instruction_uop.src1_valid && rmt_src1_valid;
-    iq_dispatch_uop.src2_tag_valid = instruction_uop.src2_valid && rmt_src2_valid;
-    iq_dispatch_uop.src1_tag = rmt_src1_tag;
-    iq_dispatch_uop.src2_tag = rmt_src2_tag;
-    iq_dispatch_uop.src1_ready = instruction_uop.src1_valid ? !rmt_src1_valid : 1'b1;
-    iq_dispatch_uop.src2_ready = instruction_uop.src2_valid ? !rmt_src2_valid : 1'b1;
+    issued_uop.src1_value =
+        iq_issue_uop.src1_tag_valid
+        ? speculative_result_file[iq_issue_uop.src1_tag]
+            : arch_src1_value;
 
-    iq_dispatch_valid = instruction_valid && instruction_ready;
+    issued_uop.src2_value =
+        iq_issue_uop.src2_tag_valid
+        ? speculative_result_file[iq_issue_uop.src2_tag]
+            : arch_src2_value;
 
     commit_valid = rob_retire_valid && rob_retired_entry.valid;
     commit_pc    = rob_retired_entry.pc;
@@ -180,23 +171,5 @@ always_comb begin
     commit_dst_valid = rob_retired_entry.dst_valid;
 
 end
-
-always_ff @(posedge clk) begin
-  if (rst) begin
-    exec_valid_q <= 1'b0;
-    exec_uop_q <= '0;
-    wb_valid <= 1'b0;
-    wb_tag <= '0;
-  end else begin
-    // Latch issued uop into execute stage
-    exec_valid_q <= iq_issue_valid;
-    exec_uop_q <= iq_issue_uop;
-    
-    // Generate writeback from execute stage (one-cycle execute for now)
-    wb_valid <= exec_valid_q; //Writeback is valid regardless of destination(branches)
-    wb_tag <= exec_uop_q.dst_tag;
-  end
-end
-
 
 endmodule

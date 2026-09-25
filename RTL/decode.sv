@@ -44,7 +44,10 @@ module decode(
                         current_funct7[5] ? ALU_SRA : ALU_SRL;
                     3'b110: decoded_uop.alu_opcode = ALU_OR;
                     3'b111: decoded_uop.alu_opcode = ALU_AND;
-                    default: decode_valid = 1'b0; decoded_uop.valid = 1'b0;
+                    default: begin
+                        decode_valid = 1'b0;
+                        decoded_uop.valid = 1'b0;
+                    end
                 endcase
                 decoded_uop.op = OP_ALU;
                 decoded_uop.src1_valid = 1'b1;
@@ -65,7 +68,10 @@ module decode(
                         current_funct7[5] ? ALU_SRA : ALU_SRL;   // srli/srai
                     3'b110: decoded_uop.alu_opcode = ALU_OR;    // ori
                     3'b111: decoded_uop.alu_opcode = ALU_AND;   // andi
-                    default: decode_valid = 1'b0; decoded_uop.valid = 1'b0;
+                    default: begin
+                        decode_valid = 1'b0;
+                        decoded_uop.valid = 1'b0;
+                    end
                 endcase
                 decoded_uop.op = OP_ALU;
                 decoded_uop.src1_valid = 1'b1;

@@ -1,3 +1,6 @@
+import core_params_pkg::*;
+import core_types_pkg::*;
+
 module ALU(
   input [31:0] a,
   input [31:0] b,
@@ -11,8 +14,8 @@ always_comb
       ALU_ADD:  result = a + b;
       ALU_SUB:  result = a - b;
       ALU_SLL:  result = a << b;
-      ALU_SLT:  result = $signed(a) < $signed(b);
-      ALU_SLTU: result = $unsigned(a) < $unsigned(b);
+      ALU_SLT:  result = ($signed(a) < $signed(b)) ? 32'd1 : 32'd0;
+      ALU_SLTU: result = ($unsigned(a) < $unsigned(b)) ? 32'd1 : 32'd0;
       ALU_XOR:  result = a ^ b;
       ALU_SRL:  result = a >> b;
       ALU_SRA:  result = $signed(a) >>> b;
