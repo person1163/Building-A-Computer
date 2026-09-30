@@ -49,6 +49,13 @@ logic                  exec_dst_valid;
 // Register File
 logic [XLEN-1:0] arch_src1_value;
 logic [XLEN-1:0] arch_src2_value;
+logic arch_w_en;
+logic [ARCH_W-1:0] arch_w_reg;
+logic [XLEN-1:0] arch_w_val;
+logic rmt_commit_valid;
+logic [ARCH_W-1:0] rmt_commit_dst;
+logic [ROB_W-1:0] rmt_commit_tag;
+logic [XLEN-1:0] retired_result;
 
 //Speculative Results
 logic [XLEN-1:0] speculative_result_file [ROB_ENTRIES];
@@ -60,54 +67,8 @@ logic [ROB_W-1:0] wb_tag;
 
 
 
-decode u_decode (
-    .instruction(instruction),
-    .pc(pc),
-    .seq(seq),
-    .instruction_valid(instruction_valid),
-    .decoded_uop(decoded_uop),
-    .decode_valid(decode_valid)
-);
 
-rename u_rename (
-    .decoded_uop(decoded_uop),
-    .rob_alloc_tag(rob_alloc_tag),
-    .rmt_src1_tag(rmt_src1_tag), .rmt_src2_tag(rmt_src2_tag),
-    .rmt_src1_valid(rmt_src1_valid), .rmt_src2_valid(rmt_src2_valid),
-    .instruction_valid(instruction_valid),
-    .instruction_ready(instruction_ready),
-    .iq_dispatch_uop(iq_dispatch_uop),
-    .rob_alloc_valid(rob_alloc_valid),
-    .rob_alloc_entry(rob_alloc_entry),
-    .rmt_rename_valid(rmt_rename_valid),
-    .iq_dispatch_valid(iq_dispatch_valid)
-);
-
-execute u_execute (
-    .clk         (clk),
-    .rst         (rst),
-    .issue_valid (iq_issue_valid),
-    .issued_uop  (issued_uop),
-
-    .exec_valid  (exec_valid),
-    .result      (exec_result),
-    .exec_tag    (exec_tag),
-    .exec_dst_valid(exec_dst_valid)
-);
-
-assign wb_valid = exec_valid;
-assign wb_tag   = exec_tag;
-
-register_files u_register_files (
-    .clk             (clk),
-    .read_register_1 (iq_issue_uop.src1),
-    .read_register_2 (iq_issue_uop.src2),
-    .write_register  ('0),
-    .write_data      ('0),
-    .write_en        (1'b0),
-    .read_data_1     (arch_src1_value),
-    .read_data_2     (arch_src2_value)
-);
+// Shared structures
 
 ROB u_rob (
   .clk(clk), .rst(rst),
@@ -122,6 +83,17 @@ ROB u_rob (
   .count(rob_count)
 );
 
+register_files u_register_files (
+    .clk             (clk),
+    .read_register_1 (iq_issue_uop.src1),
+    .read_register_2 (iq_issue_uop.src2),
+    .write_register  (arch_w_reg),
+    .write_data      (arch_w_val),
+    .write_en        (arch_w_en),
+    .read_data_1     (arch_src1_value),
+    .read_data_2     (arch_src2_value)
+);
+
 RMT u_rmt (
   .clk(clk), .rst(rst),
   .rename_valid(rmt_rename_valid),
@@ -130,9 +102,9 @@ RMT u_rmt (
   .src2(decoded_uop.src2),
   .dst(decoded_uop.dst),
   .new_tag(rob_alloc_tag),
-  .commit_valid(rob_retire_valid && rob_retired_entry.dst_valid),
-  .commit_dst(rob_retired_entry.dst_arch),
-  .commit_tag(rob_retired_tag), // add to ROB interface if missing
+    .commit_valid(rmt_commit_valid),
+    .commit_dst(rmt_commit_dst),
+    .commit_tag(rmt_commit_tag),
   .src1_valid(rmt_src1_valid),
   .src2_valid(rmt_src2_valid),
   .src1_tag(rmt_src1_tag),
@@ -149,6 +121,67 @@ IQ u_iq (
   .issue_uop(iq_issue_uop)
 );
 
+// Pipeline stages
+
+decode u_decode (
+    .instruction(instruction),
+    .pc(pc),
+    .seq(seq),
+    .instruction_valid(instruction_valid),
+    .decoded_uop(decoded_uop),
+    .decode_valid(decode_valid)
+);
+
+assign instruction_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
+
+rename u_rename (
+    .decoded_uop(decoded_uop),
+    .rob_alloc_tag(rob_alloc_tag),
+    .rmt_src1_tag(rmt_src1_tag), .rmt_src2_tag(rmt_src2_tag),
+    .rmt_src1_valid(rmt_src1_valid), .rmt_src2_valid(rmt_src2_valid),
+    .instruction_valid(instruction_valid),
+    .instruction_ready(instruction_ready),
+    .iq_dispatch_uop(iq_dispatch_uop),
+    .rob_alloc_valid(rob_alloc_valid),
+    .rob_alloc_entry(rob_alloc_entry),
+    .rmt_rename_valid(rmt_rename_valid),
+    .iq_dispatch_valid(iq_dispatch_valid)
+);
+
+always_comb begin
+    issued_uop = '0;
+    issued_uop.valid = iq_issue_valid;
+    issued_uop.seq = iq_issue_uop.seq;
+    issued_uop.pc = iq_issue_uop.pc;
+    issued_uop.op = iq_issue_uop.op;
+    issued_uop.alu_opcode = iq_issue_uop.alu_opcode;
+    issued_uop.dst = iq_issue_uop.dst;
+    issued_uop.dst_valid = iq_issue_uop.dst_valid;
+    issued_uop.dst_tag = iq_issue_uop.dst_tag;
+
+    issued_uop.src1_value = iq_issue_uop.src1_tag_valid
+        ? speculative_result_file[iq_issue_uop.src1_tag]
+        : arch_src1_value;
+
+    issued_uop.src2_value = iq_issue_uop.src2_tag_valid
+        ? speculative_result_file[iq_issue_uop.src2_tag]
+        : arch_src2_value;
+end
+
+execute u_execute (
+    .clk         (clk),
+    .rst         (rst),
+    .issue_valid (iq_issue_valid),
+    .issued_uop  (issued_uop),
+    .exec_valid  (exec_valid),
+    .result      (exec_result),
+    .exec_tag    (exec_tag),
+    .exec_dst_valid(exec_dst_valid)
+);
+
+// Writeback
+assign wb_valid = exec_valid;
+assign wb_tag   = exec_tag;
 always_ff @(posedge clk) begin
     if (rst) begin
         for (int i = 0; i < ROB_ENTRIES; i++) begin
@@ -161,38 +194,24 @@ always_ff @(posedge clk) begin
     end
 end
 
-always_comb begin
-    
-    instruction_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
 
-
-    // Ready to execute uop
-    issued_uop = '0;
-    issued_uop.valid = iq_issue_valid;
-    issued_uop.seq = iq_issue_uop.seq;
-    issued_uop.pc = iq_issue_uop.pc;
-    issued_uop.op = iq_issue_uop.op;
-    issued_uop.alu_opcode = iq_issue_uop.alu_opcode;
-    issued_uop.dst = iq_issue_uop.dst;
-    issued_uop.dst_valid = iq_issue_uop.dst_valid;
-    issued_uop.dst_tag = iq_issue_uop.dst_tag;
-
-    issued_uop.src1_value =
-        iq_issue_uop.src1_tag_valid
-        ? speculative_result_file[iq_issue_uop.src1_tag]
-            : arch_src1_value;
-
-    issued_uop.src2_value =
-        iq_issue_uop.src2_tag_valid
-        ? speculative_result_file[iq_issue_uop.src2_tag]
-            : arch_src2_value;
-
-    commit_valid = rob_retire_valid && rob_retired_entry.valid;
-    commit_pc    = rob_retired_entry.pc;
-    commit_seq   = rob_retired_entry.seq;
-    commit_dst_arch = rob_retired_entry.dst_arch;
-    commit_dst_valid = rob_retired_entry.dst_valid;
-
-end
+assign retired_result = speculative_result_file[rob_retired_tag];
+retire u_retire (
+    .retire_valid      (rob_retire_valid),
+    .retired_entry     (rob_retired_entry),
+    .retired_tag       (rob_retired_tag),
+    .retired_result    (retired_result),
+    .commit_valid      (commit_valid),
+    .commit_pc         (commit_pc),
+    .commit_seq        (commit_seq),
+    .commit_dst_arch   (commit_dst_arch),
+    .commit_dst_valid  (commit_dst_valid),
+    .arch_w_en         (arch_w_en),
+    .arch_w_reg        (arch_w_reg),
+            .arch_w_val        (arch_w_val),
+    .rmt_commit_valid  (rmt_commit_valid),
+    .rmt_commit_dst    (rmt_commit_dst),
+    .rmt_commit_tag    (rmt_commit_tag)
+);
 
 endmodule
