@@ -9,11 +9,13 @@ module execute(
 
     output logic                exec_valid,
     output logic [XLEN-1:0]     result,
-    output logic [ROB_W-1:0]    exec_tag
+    output logic [ROB_W-1:0]    exec_tag,
+    output logic                exec_dst_valid
 );
 
     issued_uop_t execute_uop_q;
     assign exec_tag = execute_uop_q.dst_tag;
+    assign exec_dst_valid = execute_uop_q.dst_valid;
 
     ALU u_alu (
         .a(execute_uop_q.src1_value),        

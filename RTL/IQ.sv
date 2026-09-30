@@ -21,6 +21,7 @@ logic [IQ_W-1:0] oldest_index;
 logic [IQ_W-1:0] free_index;
 logic selected_valid;
 logic free_valid;
+uop_t dispatch_uop_effective;
 
 always_comb begin
     issue_valid = 1'b0;
@@ -42,7 +43,7 @@ always_comb begin
         if (IQ_array[i].valid &&
             IQ_array[i].uop.src1_ready &&
             IQ_array[i].uop.src2_ready &&
-            (IQ_array[i].uop.seq < oldest_seq)) begin
+            (IQ_array[i].uop.seq < oldest_seq)) begin // Find oldest ready instruction to issue
             selected_valid = 1'b1;
             oldest_seq = IQ_array[i].uop.seq;
             oldest_index = IQ_W'(i);
@@ -54,6 +55,20 @@ always_comb begin
     issue_valid = selected_valid;
 end
 
+always_comb begin //calculates the src register readiness accurately
+    dispatch_uop_effective = dispatch_uop;
+
+    dispatch_uop_effective.src1_ready =
+        dispatch_uop.src1_ready ||
+        (wb_valid && dispatch_uop.src1_tag_valid &&
+         dispatch_uop.src1_tag == wb_tag);
+
+    dispatch_uop_effective.src2_ready =
+        dispatch_uop.src2_ready ||
+        (wb_valid && dispatch_uop.src2_tag_valid &&
+         dispatch_uop.src2_tag == wb_tag);
+end
+
 always_ff @(posedge clk) begin
     if (rst) begin
         for (int i = 0; i < IQ_ENTRIES; i++) begin
@@ -62,8 +77,8 @@ always_ff @(posedge clk) begin
         end
     end else begin
         if (wb_valid) begin
-            for (int i = 0; i < IQ_ENTRIES; i++) begin
-                if (IQ_array[i].valid) begin
+            for (int i = 0; i < IQ_ENTRIES; i++) begin // Match writeback tag to either source register for all sleeping instruction
+                if (IQ_array[i].valid) begin 
                     if (wb_tag == IQ_array[i].uop.src1_tag) begin
                         IQ_array[i].uop.src1_ready <= 1'b1;
                     end
@@ -76,7 +91,7 @@ always_ff @(posedge clk) begin
 
         if (dispatch_valid && dispatch_ready) begin
             IQ_array[free_index].valid <= 1'b1;
-            IQ_array[free_index].uop <= dispatch_uop;
+            IQ_array[free_index].uop <= dispatch_uop_effective;
         end
 
         if (issue_valid) begin

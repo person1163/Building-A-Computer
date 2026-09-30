@@ -44,13 +44,11 @@ issued_uop_t issued_uop;
 logic                  exec_valid;
 logic [XLEN-1:0]       exec_result;
 logic [ROB_W-1:0]      exec_tag;
+logic                  exec_dst_valid;
 
 // Register File
 logic [XLEN-1:0] arch_src1_value;
 logic [XLEN-1:0] arch_src2_value;
-logic [XLEN-1:0] arch_write_value;
-logic [ARCH_W-1:0] arch_write_register;
-logic arch_write_enable;
 
 //Speculative Results
 logic [XLEN-1:0] speculative_result_file [ROB_ENTRIES];
@@ -93,11 +91,23 @@ execute u_execute (
 
     .exec_valid  (exec_valid),
     .result      (exec_result),
-    .exec_tag    (exec_tag)
+    .exec_tag    (exec_tag),
+    .exec_dst_valid(exec_dst_valid)
 );
 
 assign wb_valid = exec_valid;
 assign wb_tag   = exec_tag;
+
+register_files u_register_files (
+    .clk             (clk),
+    .read_register_1 (iq_issue_uop.src1),
+    .read_register_2 (iq_issue_uop.src2),
+    .write_register  ('0),
+    .write_data      ('0),
+    .write_en        (1'b0),
+    .read_data_1     (arch_src1_value),
+    .read_data_2     (arch_src2_value)
+);
 
 ROB u_rob (
   .clk(clk), .rst(rst),
@@ -139,6 +149,18 @@ IQ u_iq (
   .issue_uop(iq_issue_uop)
 );
 
+always_ff @(posedge clk) begin
+    if (rst) begin
+        for (int i = 0; i < ROB_ENTRIES; i++) begin
+            speculative_result_file[i] <= '0;
+            result_ready[i] <= 1'b0;
+        end
+    end else if (exec_valid && exec_dst_valid) begin
+        speculative_result_file[exec_tag] <= exec_result;
+        result_ready[exec_tag] <= 1'b1;
+    end
+end
+
 always_comb begin
     
     instruction_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
@@ -152,6 +174,7 @@ always_comb begin
     issued_uop.op = iq_issue_uop.op;
     issued_uop.alu_opcode = iq_issue_uop.alu_opcode;
     issued_uop.dst = iq_issue_uop.dst;
+    issued_uop.dst_valid = iq_issue_uop.dst_valid;
     issued_uop.dst_tag = iq_issue_uop.dst_tag;
 
     issued_uop.src1_value =

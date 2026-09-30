@@ -13,7 +13,7 @@ module register_files(
     integer i;
     
     initial begin
-        for(i=0;i<32;i=i+1) reg_array[i] <= 0;
+        for(i=0;i<32;i=i+1) reg_array[i] = 0;
     end
     
     always @ (posedge clk ) begin

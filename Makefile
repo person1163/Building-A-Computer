@@ -12,7 +12,7 @@ COMMON_RTL := $(RTL_DIR)/core_params.sv $(RTL_DIR)/core_types.sv
 RMT_FILES := $(COMMON_RTL) $(RTL_DIR)/RMT.sv $(TB_DIR)/RMT_tb.sv
 ROB_FILES := $(COMMON_RTL) $(RTL_DIR)/ROB.sv $(TB_DIR)/ROB_tb.sv
 IQ_FILES := $(COMMON_RTL) $(RTL_DIR)/IQ.sv $(TB_DIR)/IQ_tb.sv
-DATAPATH_FILES := $(COMMON_RTL) $(RTL_DIR)/decode.sv $(RTL_DIR)/RMT.sv $(RTL_DIR)/ROB.sv $(RTL_DIR)/IQ.sv $(RTL_DIR)/ALU.sv $(RTL_DIR)/rename.sv $(RTL_DIR)/execute.sv $(RTL_DIR)/datapath.sv $(TB_DIR)/datapath_tb.sv
+DATAPATH_FILES := $(COMMON_RTL) $(RTL_DIR)/decode.sv $(RTL_DIR)/RMT.sv $(RTL_DIR)/ROB.sv $(RTL_DIR)/IQ.sv $(RTL_DIR)/ALU.sv $(RTL_DIR)/register_files.sv $(RTL_DIR)/rename.sv $(RTL_DIR)/execute.sv $(RTL_DIR)/datapath.sv $(TB_DIR)/datapath_tb.sv
 
 .PHONY: all rmt rob iq datapath wave-datapath clean help
 
