@@ -6,6 +6,7 @@ module rename(
     input   [ROB_W-1:0] rob_alloc_tag,
     input   [ROB_W-1:0] rmt_src1_tag, rmt_src2_tag,
     input   logic       rmt_src1_valid, rmt_src2_valid,
+    input   logic       src1_producer_ready, src2_producer_ready,
     input   logic       instruction_valid,
     input   logic       instruction_ready,
     output  uop_t       iq_dispatch_uop,
@@ -26,8 +27,8 @@ module rename(
         iq_dispatch_uop.src2_tag_valid = decoded_uop.src2_valid && rmt_src2_valid;
         iq_dispatch_uop.src1_tag = rmt_src1_tag;
         iq_dispatch_uop.src2_tag = rmt_src2_tag;
-        iq_dispatch_uop.src1_ready = decoded_uop.src1_valid ? !rmt_src1_valid : 1'b1;
-        iq_dispatch_uop.src2_ready = decoded_uop.src2_valid ? !rmt_src2_valid : 1'b1;
+        iq_dispatch_uop.src1_ready = !decoded_uop.src1_valid || src1_producer_ready;
+        iq_dispatch_uop.src2_ready = !decoded_uop.src2_valid || src2_producer_ready;
         iq_dispatch_valid = rename_fire;
         
         // Rename logic

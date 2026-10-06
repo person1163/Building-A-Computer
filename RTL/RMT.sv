@@ -43,17 +43,17 @@ module RMT (
                 rmt[i].tag   <= '0;
             end
         end else begin
-            if (rename_valid && dst_valid) begin
-                rmt[dst].valid <= 1'b1;
-                rmt[dst].tag   <= new_tag;
-            end
-
             if (commit_valid) begin
                 if (rmt[commit_dst].valid && (rmt[commit_dst].tag == commit_tag)) begin
                     rmt[commit_dst].valid <= 1'b0;
                     rmt[commit_dst].tag   <= '0;
                 end
             end
+            if (rename_valid && dst_valid) begin
+                rmt[dst].valid <= 1'b1;
+                rmt[dst].tag   <= new_tag;
+            end
+
         end
     end
 

@@ -20,11 +20,9 @@ Back on track, verified basic ROB and datapath functionality. Added tests for RA
 
 Decode finished, going to wire to alu unit and create register file
 
-
 9/29/2026
 
-Bug: 
-
+Bug:
 
 The tenth instruction is  **not being dropped by the testbench** . It is the `SW` at `seq=9`: it allocates into the ROB and enters the IQ, but never issues, so its ROB entry never completes and retires.
 
@@ -35,3 +33,7 @@ The fix belongs in IQ dispatch/wakeup handling: when inserting a uop, account fo
 The fatal text in `datapath_tb.sv` says “Expected 9” even though the condition expects 10. That message is misleading, but it isn’t the cause.
 
 Simply, the issue is that sometimes, if a producer is written back on the same edge as the dispatch , src1_ready will miss its time to be set.
+
+10/5/2026:
+
+RMT bug: If a rmt entry is renamed on the same edge as an older producer retires, the clear wins. Fixed by switching commit clear to be first, thus rename is not cleared but wins last

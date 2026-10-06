@@ -44,7 +44,13 @@ module datapath_tb ();
         instruction = '0;
         pc = 0;
         seq = 0;
-
+        dut.u_register_files.reg_array[1] = 1;
+        dut.u_register_files.reg_array[2] = 2;
+        dut.u_register_files.reg_array[3] = 3;
+        dut.u_register_files.reg_array[4] = 4;
+        dut.u_register_files.reg_array[5] = 10;
+        dut.u_register_files.reg_array[6] = 20;
+        dut.u_register_files.reg_array[7] = 5;
         repeat (3) @(posedge clk);
         rst = 0;
         // First 2 instructions are RAW dependencies
@@ -159,6 +165,18 @@ module datapath_tb ();
         if (commit_count != 10) begin
             $fatal("Expected 9 commits, saw %0d", commit_count);
         end
+
+        assert (dut.u_register_files.reg_array[5] == 32'd3)
+            else $fatal("x5 expected 3, got %0d",
+                dut.u_register_files.reg_array[5]);
+
+        assert (dut.u_register_files.reg_array[6] == 32'd6)
+            else $fatal("x6 expected 6, got %0d",
+                        dut.u_register_files.reg_array[6]);
+
+        assert (dut.u_register_files.reg_array[7] == 32'd10)
+            else $fatal("x7 expected 10, got %0d",
+                        dut.u_register_files.reg_array[7]);
         $finish;
     end
 
