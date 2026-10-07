@@ -55,6 +55,8 @@ module decode(
                 decoded_uop.dst_valid = 1'b1;
                 decoded_uop.valid = 1'b1;
                 decode_valid = 1'b1;
+                decoded_uop.use_imm = 1'b0;
+                decoded_uop.imm = {{(XLEN-12){instruction[31]}}, instruction[31:20]};
             end
             // I-type instructions
             7'b0010011: begin
@@ -79,6 +81,8 @@ module decode(
                 decoded_uop.dst_valid = 1'b1;
                 decoded_uop.valid = 1'b1;
                 decode_valid = 1'b1;
+                decoded_uop.use_imm = 1'b1;
+                decoded_uop.imm = {{(XLEN-12){instruction[31]}}, instruction[31:20]};
             end
             // I-type instructions loads
             7'b0000011: begin
@@ -88,6 +92,7 @@ module decode(
                 decoded_uop.dst_valid  = 1'b1;
                 decoded_uop.valid = 1'b1;
                 decode_valid = 1'b1;
+                decoded_uop.use_imm = 1'b1;
             end
             // S-type instructions
             7'b0100011: begin
@@ -97,6 +102,8 @@ module decode(
                 decoded_uop.dst_valid = 1'b0;
                 decoded_uop.valid = 1'b1;
                 decode_valid = 1'b1;
+                decoded_uop.use_imm = 1'b0;
+                decoded_uop.imm = {{(XLEN-12){instruction[31]}}, instruction[31:20]};
             end
             // B-type instructions
             7'b1100011: begin
@@ -106,6 +113,8 @@ module decode(
                 decoded_uop.dst_valid = 1'b0;
                 decoded_uop.valid = 1'b1;
                 decode_valid = 1'b1;
+                decoded_uop.use_imm = 1'b0;
+                decoded_uop.imm = {{(XLEN-12){instruction[31]}}, instruction[31:20]};
             end
         endcase
     end

@@ -44,6 +44,8 @@ package core_types_pkg;
     logic             src1_ready;
     logic             src2_ready;
     alu_op_t          alu_opcode;
+    logic             use_imm;
+    logic [XLEN-1:0]  imm;
   } uop_t;
 
   typedef struct packed {

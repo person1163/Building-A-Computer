@@ -130,6 +130,20 @@ module datapath_tb ();
         };
 
         while (!instruction_ready) @(posedge clk);
+
+        @(negedge clk);
+        instruction_valid = 1;
+        // 11th instruction addi x8, x1, 5  => x8 = 6
+        instruction = {12'd5, 5'd1, 3'b000, 5'd8, 7'b0010011};
+        while (!instruction_ready) @(posedge clk);
+
+        @(negedge clk);
+        instruction_valid = 1;
+        // addi x9, x2, -3 => x9 = -1
+        instruction = {12'hFFD, 5'd2, 3'b000, 5'd9, 7'b0010011};
+        while (!instruction_ready) @(posedge clk);
+        
+        
         @(posedge clk);
 
         @(negedge clk);
@@ -137,8 +151,8 @@ module datapath_tb ();
         instruction_valid = 0;
         repeat (20) @(posedge clk);
 
-        if (commit_count != 10) begin
-            $fatal("Expected 9 commits, saw %0d", commit_count);
+        if (commit_count != 12) begin
+            $fatal("Expected 11 commits, saw %0d", commit_count);
         end
 
         assert (dut.u_register_files.reg_array[5] == 32'd3)
@@ -152,6 +166,14 @@ module datapath_tb ();
         assert (dut.u_register_files.reg_array[7] == 32'd10)
             else $fatal("x7 expected 10, got %0d",
                         dut.u_register_files.reg_array[7]);
+
+        assert (dut.u_register_files.reg_array[8] == 32'd6)
+            else $fatal(1, "x8 expected 6, got %0d",
+                        dut.u_register_files.reg_array[8]);
+
+        assert (dut.u_register_files.reg_array[9] == 32'hFFFF_FFFF)
+            else $fatal(1, "x9 expected -1, got %0d",
+                        dut.u_register_files.reg_array[9]);
         $finish;
     end
 
@@ -231,6 +253,28 @@ module datapath_tb ();
                         else $fatal("Commit 9: expected PC 0x24, got 0x%h", commit_pc);
                     assert (!commit_dst_valid)
                         else $fatal("Commit 9: store should not have a destination register");
+                end
+
+                10: begin
+                    assert (commit_seq == 10)
+                        else $fatal("Commit 10: expected seq 10, got %0d", commit_seq);
+                    assert (commit_pc == 32'h28)
+                        else $fatal("Commit 10: expected PC 0x28, got 0x%h", commit_pc);
+                    assert (commit_dst_valid)
+                        else $fatal("Commit 10: ADDI should have a destination");
+                    assert (commit_dst_arch == 8)
+                        else $fatal("Commit 10: expected destination x8, got x%0d", commit_dst_arch);
+                end
+
+                11: begin
+                    assert (commit_seq == 11)
+                        else $fatal("Commit 11: expected seq 11, got %0d", commit_seq);
+                    assert (commit_pc == 32'h2C)
+                        else $fatal("Commit 11: expected PC 0x2C, got 0x%h", commit_pc);
+                    assert (commit_dst_valid)
+                        else $fatal("Commit 11: ADDI should have a destination");
+                    assert (commit_dst_arch == 9)
+                        else $fatal("Commit 11: expected destination x9, got x%0d", commit_dst_arch);
                 end
 
                 default: $fatal("Unexpected extra commit: seq=%0d pc=0x%h", commit_seq, commit_pc);

@@ -180,9 +180,13 @@ module datapath(
             ? issue_src1_result
             : arch_src1_value;
 
-        issued_uop.src2_value = iq_issue_uop.src2_tag_valid
-            ? issue_src2_result
-            : arch_src2_value;
+        if (iq_issue_uop.use_imm) begin
+            issued_uop.src2_value = iq_issue_uop.imm;
+        end else begin
+            issued_uop.src2_value = iq_issue_uop.src2_tag_valid
+                ? issue_src2_result
+                : arch_src2_value;
+        end
     end
 
     execute u_execute (
