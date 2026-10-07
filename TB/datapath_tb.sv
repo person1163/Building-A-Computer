@@ -5,7 +5,6 @@ module datapath_tb ();
     logic clk, rst;
     logic [31:0] instruction;
     logic instruction_valid;
-    logic [31:0] pc, seq;
     logic instruction_ready;
 
     logic commit_valid;
@@ -19,8 +18,6 @@ module datapath_tb ();
         .rst(rst),
         .instruction(instruction),
         .instruction_valid(instruction_valid),
-        .pc(pc),
-        .seq(seq),
         .instruction_ready(instruction_ready),
         .commit_valid(commit_valid),
         .commit_pc(commit_pc),
@@ -42,8 +39,6 @@ module datapath_tb ();
         rst = 1;
         instruction_valid = 0;
         instruction = '0;
-        pc = 0;
-        seq = 0;
         dut.u_register_files.reg_array[1] = 1;
         dut.u_register_files.reg_array[2] = 2;
         dut.u_register_files.reg_array[3] = 3;
@@ -57,8 +52,6 @@ module datapath_tb ();
         // first instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h0;
-        seq = 0;
         instruction = {7'b0000000, 5'd6, 5'd5, 3'b000, 5'd5, 7'b0110011}; //add x5, x6, x5
 
         while (!instruction_ready) @(posedge clk);
@@ -67,8 +60,6 @@ module datapath_tb ();
         
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h4;
-        seq = 1;
         instruction = {7'b0000000, 5'd7, 5'd5, 3'b000, 5'd6, 7'b0110011}; //add x6, x7, x5
 
         while (!instruction_ready) @(posedge clk);
@@ -78,8 +69,6 @@ module datapath_tb ();
         
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h8;
-        seq = 2;
         instruction = {7'b0000000, 5'd1, 5'd2, 3'b000, 5'd5, 7'b0110011}; //add x5, x1, x2
 
         while (!instruction_ready) @(posedge clk);
@@ -87,8 +76,6 @@ module datapath_tb ();
         // fourth instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'hC;
-        seq = 3;
         instruction = {7'b0000000, 5'd3, 5'd4, 3'b000, 5'd6, 7'b0110011}; //add x6, x3, x4
 
         while (!instruction_ready) @(posedge clk);
@@ -97,8 +84,6 @@ module datapath_tb ();
         // fifth instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h10;
-        seq = 4;
         instruction = {7'b0000000, 5'd1, 5'd2, 3'b000, 5'd5, 7'b0110011}; //add x5, x1, x2
 
         while (!instruction_ready) @(posedge clk);
@@ -106,8 +91,6 @@ module datapath_tb ();
         // sixth instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h14;
-        seq = 5;
         instruction = {7'b0000000, 5'd3, 5'd4, 3'b000, 5'd5, 7'b0110011}; //add x5, x3, x4
 
         while (!instruction_ready) @(posedge clk);
@@ -116,8 +99,6 @@ module datapath_tb ();
         // seventh instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h18;
-        seq = 6;
         instruction = {7'b0000000, 5'd1, 5'd2, 3'b000, 5'd5, 7'b0110011}; //add x5, x1, x2
 
         while (!instruction_ready) @(posedge clk);
@@ -125,8 +106,6 @@ module datapath_tb ();
         // eighth instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h1C;
-        seq = 7;
         instruction = {7'b0000000, 5'd3, 5'd5, 3'b000, 5'd6, 7'b0110011}; //add x6, x3, x5
 
         while (!instruction_ready) @(posedge clk);
@@ -134,8 +113,6 @@ module datapath_tb ();
         // ninth instruction
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h20;
-        seq = 8;
         instruction = {7'b0000000, 5'd4, 5'd6, 3'b000, 5'd7, 7'b0110011}; //add x7, x6, x4
 
         while (!instruction_ready) @(posedge clk);
@@ -143,8 +120,6 @@ module datapath_tb ();
         // tenth instruction no destination regs
         @(negedge clk);
         instruction_valid = 1;
-        pc = 32'h24;
-        seq = 9;
         instruction = {
             7'b0000000,  // imm[11:5]
             5'd6,        // rs2

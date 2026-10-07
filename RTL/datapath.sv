@@ -5,7 +5,6 @@ module datapath(
     input logic clk, rst,
     input logic [31:0] instruction,
     input logic instruction_valid,
-    input logic [31:0] pc, seq,
     output logic instruction_ready,
     output logic commit_valid,
     output logic [31:0] commit_pc,
@@ -17,6 +16,10 @@ module datapath(
 
     uop_t decoded_uop;
     logic decode_valid;
+    logic [31:0] fetch_instruction;
+    logic fetch_instruction_valid;
+    logic [31:0] fetch_pc, fetch_seq;
+    logic pipeline_ready;
 
     // ROB
     rob_entry_t rob_alloc_entry;
@@ -122,16 +125,29 @@ module datapath(
 
     // Pipeline stages
 
+    fetch u_fetch (
+        .clk                   (clk),
+        .rst                   (rst),
+        .instruction_in        (instruction),
+        .instruction_valid_in  (instruction_valid),
+        .downstream_ready      (pipeline_ready),
+        .instruction_ready     (instruction_ready),
+        .instruction_out       (fetch_instruction),
+        .instruction_valid_out (fetch_instruction_valid),
+        .pc_out                (fetch_pc),
+        .seq_out               (fetch_seq)
+    );
+
     decode u_decode (
-        .instruction(instruction),
-        .pc(pc),
-        .seq(seq),
-        .instruction_valid(instruction_valid),
+        .instruction(fetch_instruction),
+        .pc(fetch_pc),
+        .seq(fetch_seq),
+        .instruction_valid(fetch_instruction_valid),
         .decoded_uop(decoded_uop),
         .decode_valid(decode_valid)
     );
 
-    assign instruction_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
+    assign pipeline_ready = decode_valid && rob_alloc_ready && iq_dispatch_ready;
 
     rename u_rename (
         .decoded_uop(decoded_uop),
@@ -140,8 +156,8 @@ module datapath(
         .rmt_src1_valid(rmt_src1_valid), .rmt_src2_valid(rmt_src2_valid),
         .src1_producer_ready(dispatch_src1_ready),
         .src2_producer_ready(dispatch_src2_ready),
-        .instruction_valid(instruction_valid),
-        .instruction_ready(instruction_ready),
+        .instruction_valid(fetch_instruction_valid),
+        .instruction_ready(pipeline_ready),
         .iq_dispatch_uop(iq_dispatch_uop),
         .rob_alloc_valid(rob_alloc_valid),
         .rob_alloc_entry(rob_alloc_entry),

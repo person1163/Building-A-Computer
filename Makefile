@@ -12,11 +12,12 @@ COMMON_RTL := $(RTL_DIR)/core_params.sv $(RTL_DIR)/core_types.sv
 RMT_FILES := $(COMMON_RTL) $(RTL_DIR)/RMT.sv $(TB_DIR)/RMT_tb.sv
 ROB_FILES := $(COMMON_RTL) $(RTL_DIR)/ROB.sv $(TB_DIR)/ROB_tb.sv
 IQ_FILES := $(COMMON_RTL) $(RTL_DIR)/IQ.sv $(TB_DIR)/IQ_tb.sv
-DATAPATH_FILES := $(COMMON_RTL) $(RTL_DIR)/decode.sv $(RTL_DIR)/RMT.sv $(RTL_DIR)/ROB.sv $(RTL_DIR)/IQ.sv $(RTL_DIR)/ALU.sv $(RTL_DIR)/register_files.sv $(RTL_DIR)/rename.sv $(RTL_DIR)/execute.sv $(RTL_DIR)/writeback.sv $(RTL_DIR)/retire.sv $(RTL_DIR)/datapath.sv $(TB_DIR)/datapath_tb.sv
+WRITEBACK_FILES := $(RTL_DIR)/core_params.sv $(RTL_DIR)/writeback.sv $(TB_DIR)/writeback_tb.sv
+DATAPATH_FILES := $(COMMON_RTL) $(RTL_DIR)/fetch.sv $(RTL_DIR)/decode.sv $(RTL_DIR)/RMT.sv $(RTL_DIR)/ROB.sv $(RTL_DIR)/IQ.sv $(RTL_DIR)/ALU.sv $(RTL_DIR)/register_files.sv $(RTL_DIR)/rename.sv $(RTL_DIR)/execute.sv $(RTL_DIR)/writeback.sv $(RTL_DIR)/retire.sv $(RTL_DIR)/datapath.sv $(TB_DIR)/datapath_tb.sv
 
-.PHONY: all rmt rob iq datapath wave-datapath clean help
+.PHONY: all rmt rob iq writeback datapath wave-datapath clean help
 
-all: rmt rob iq datapath
+all: rmt rob iq writeback datapath
 
 rmt: $(BUILD_DIR)/RMT_tb/VRMT_tb
 	cd $(BUILD_DIR)/RMT_tb && ./VRMT_tb
@@ -26,6 +27,9 @@ rob: $(BUILD_DIR)/ROB_tb/VROB_tb
 
 iq: $(BUILD_DIR)/IQ_tb/VIQ_tb
 	cd $(BUILD_DIR)/IQ_tb && ./VIQ_tb
+
+writeback: $(BUILD_DIR)/writeback_tb/Vwriteback_tb
+	cd $(BUILD_DIR)/writeback_tb && ./Vwriteback_tb
 
 datapath: $(BUILD_DIR)/datapath_tb/Vdatapath_tb
 	cd $(BUILD_DIR)/datapath_tb && ./Vdatapath_tb
@@ -48,6 +52,10 @@ $(BUILD_DIR)/IQ_tb/VIQ_tb: $(IQ_FILES)
 $(BUILD_DIR)/datapath_tb/Vdatapath_tb: $(DATAPATH_FILES)
 	mkdir -p $(BUILD_DIR)/datapath_tb
 	$(VERILATOR) $(VERILATOR_FLAGS) --top-module datapath_tb -Mdir $(BUILD_DIR)/datapath_tb $(DATAPATH_FILES)
+
+$(BUILD_DIR)/writeback_tb/Vwriteback_tb: $(WRITEBACK_FILES)
+	mkdir -p $(BUILD_DIR)/writeback_tb
+	$(VERILATOR) $(VERILATOR_FLAGS) --top-module writeback_tb -Mdir $(BUILD_DIR)/writeback_tb $(WRITEBACK_FILES)
 
 clean:
 	rm -rf $(BUILD_DIR)
